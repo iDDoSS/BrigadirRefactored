@@ -24,8 +24,11 @@ class ClanWars {
   teamBMeta = null;
   clanwarEndMessage = null;
   winnerTeam = null;
+  pairs = new Array();
+  percentage = null;
 
   description() {
+    this.pairs[0] = new Array(null, null);//TODO добавить профили парочек вместо null
     return `Начать рейтинговый clan wars.
     Флаги: --discipline=? --name=? --alghorithm=<coming soon>
     Команды: !cw end --name=cwname - закончить кв; !cw cancel --name=cwname - отменить кв`;
@@ -97,12 +100,28 @@ class ClanWars {
           }
           return 0;
         })
-        const teamAIds = [0,9,2,7,5]
-        const teamBIds = [1,8,3,6,4]
-
-        this.teamA = this.players.filter((v, i) => teamAIds.includes(i));
-        this.teamB = this.players.filter((v ,i) => teamBIds.includes(i));
     }
+
+    if (this.pairs.size > 0) {
+      for(var i=0; i<this.pairs.size; i++) {
+        firstPerson = pairs[count-1][count-1];
+        secondPerson = pairs[count-1][count];
+        this.players.splice(players.indexOf(firstPerson));
+        this.players.push(firstPerson);
+        this.players.splice(players.indexOf(secondPerson));
+        this.players.unshift(secondPerson);
+      }
+    }
+
+    const teamAIds = [0,9,2,7,5]
+    const teamBIds = [1,8,3,6,4]
+
+    this.teamA = this.players.filter((v, i) => teamAIds.includes(i));
+    this.teamB = this.players.filter((v ,i) => teamBIds.includes(i));
+    
+    teamAPoints = 0;//TODO посчитать поинты для обеих команд
+    teamBPoints = 0;
+    this.percentage = teamAPoints > teamBPoints ? teamAPoints / teamBPoints : teamBPoints / teamAPoints
   }
 
   async createTeams() {
@@ -248,12 +267,22 @@ class ClanWars {
     const winnerTeam = this.args.winner === this.clanwar.teamA.name ? this.clanwar.teamA : this.clanwar.teamB
     const loserTeam = this.args.winner === this.clanwar.teamA.name ? this.clanwar.teamB : this.clanwar.teamA
 
+    points = 0;
+    
+    if (winnerTeam.points > loserTeam.points) {
+      points = 25 / this.percentage//при условии что percentage > 1
+    } 
+    
+    if (winnerTeam.points < loserTeam.points) {
+      points = 25 * this.percentage//при условии что percentage > 1
+    }
+      
     for (const member of winnerTeam.members) {
-      await updateUserClanwarProfilePoints(member.member_id, this.clanwar.discipline_id, 'inc', 25)
+      await updateUserClanwarProfilePoints(member.member_id, this.clanwar.discipline_id, 'inc', points)
     }
 
     for (const member of loserTeam.members) {
-      await updateUserClanwarProfilePoints(member.member_id, this.clanwar.discipline_id, 'dec', 25)
+      await updateUserClanwarProfilePoints(member.member_id, this.clanwar.discipline_id, 'dec', points)
     }
 
     this.winnerTeam = winnerTeam
